@@ -89,11 +89,11 @@ const ChatApp = () => {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e : React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (input.trim()) {
-        handleSubmit(e as any);
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
       }
     }
   };
