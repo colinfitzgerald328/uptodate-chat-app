@@ -37,7 +37,8 @@ const ChatApp = () => {
     setInput('');
 
     try {
-      const contextData = await fetchAIContext(input);
+      const allMessages = messages.map(m => m.text).join('\n');
+      const contextData = await fetchAIContext(allMessages);
       await streamGenAIResponse(contextData, input);
     } catch (error) {
       console.error('Error:', error);
