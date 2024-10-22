@@ -52,8 +52,9 @@ const ChatApp = () => {
     }
 
     try {
-      const allMessages = messages.map(m => m.text).join('\n');
-      const contextData = await fetchAIContext(allMessages);
+      const currentQuestion = input;
+      const chatHistory = messages.map(message => message.text)
+      const contextData = await fetchAIContext({ current_question: currentQuestion, chat_history: chatHistory});
       await streamGenAIResponse(contextData, input);
     } catch (error) {
       console.error('Error:', error);
