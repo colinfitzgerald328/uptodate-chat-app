@@ -1,15 +1,25 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, User, Bot, Trash2, ArrowDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { fetchAIContext } from './api';
+import React, { useState, useRef, useEffect } from "react";
+import { Send, Loader2, User, Bot, Trash2, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { fetchAIContext } from "./api";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import ReactMarkdown from 'react-markdown';
-import { motion, AnimatePresence } from 'framer-motion';
-import { fetchLinksFromGoogle, fetchContentFromLinks, getQueriesFromMessages, ModelResponse } from './api';
+import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  fetchLinksFromGoogle,
+  fetchContentFromLinks,
+  getQueriesFromMessages,
+  ModelResponse,
+} from "./api";
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -23,7 +33,7 @@ interface Message {
 
 const ChatApp = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,8 +52,9 @@ const ChatApp = () => {
       }
     };
 
-    scrollAreaRef.current?.addEventListener('scroll', handleScroll);
-    return () => scrollAreaRef.current?.removeEventListener('scroll', handleScroll);
+    scrollAreaRef.current?.addEventListener("scroll", handleScroll);
+    return () =>
+      scrollAreaRef.current?.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -55,52 +66,63 @@ const ChatApp = () => {
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'inherit';
+      textarea.style.height = "inherit";
       textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
   }, [input]);
 
-
-
-
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    
+
     setIsLoading(true);
-    const newMessage: Message = { id: Date.now().toString(), text: input, isUser: true, timestamp: new Date() };
-    setMessages(prev => [...prev, newMessage]);
-    setInput('');
-    
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: input,
+      isUser: true,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, newMessage]);
+    setInput("");
+
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'inherit';
+      textareaRef.current.style.height = "inherit";
     }
 
     try {
-      const chatHistory = messages.map(message => message.text);
+      const chatHistory = messages.map((message) => message.text);
       const query = await getQueriesFromMessages(chatHistory);
       if (!query) {
-        return; 
+        return;
       }
       const responseAsJson = JSON.parse(query) as ModelResponse;
       const queries = responseAsJson.response;
-      const linkResults = await Promise.all(queries.map((query: string) => fetchLinksFromGoogle(query, "", "")));
+      const linkResults = await Promise.all(
+        queries.map((query: string) => fetchLinksFromGoogle(query, "", "")),
+      );
       const topLinksForEachResult = linkResults.map((link) => {
         return link.items.slice(0, 3).map((item) => {
-          return item.formattedUrl
-        })
-      })
-      const contextResponse = await fetchContentFromLinks(topLinksForEachResult.flat());
-      await streamGenAIResponse(contextResponse.map((item) => item.content).join("\n"), input);
+          return item.formattedUrl;
+        });
+      });
+      const contextResponse = await fetchContentFromLinks(
+        topLinksForEachResult.flat(),
+      );
+      await streamGenAIResponse(
+        contextResponse.map((item) => item.content).join("\n"),
+        input,
+      );
     } catch (error) {
-      console.error('Error:', error);
-      setMessages(prev => [...prev, { 
-        id: Date.now().toString(),
-        text: 'Sorry, an error occurred. Please try again later.',
-        isUser: false,
-        timestamp: new Date()
-      }]);
+      console.error("Error:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          text: "Sorry, an error occurred. Please try again later.",
+          isUser: false,
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -108,16 +130,21 @@ const ChatApp = () => {
 
   const streamGenAIResponse = async (context: string, question: string) => {
     const prompt = `The following is context intended to help you answer the user's question. Here is the context: <context>${context}</context>. The user's question is: <user_question>${question}</user_question>. Please answer the question using the context provided. Do NOT mention the context but rather answer the question naturally.`;
-    
+
     const result = await model.generateContentStream(prompt);
-    let accumulatedText = '';
-    
-    const newMessage: Message = { id: Date.now().toString(), text: '', isUser: false, timestamp: new Date() };
-    setMessages(prev => [...prev, newMessage]);
-    
+    let accumulatedText = "";
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: "",
+      isUser: false,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, newMessage]);
+
     for await (const chunk of result.stream) {
       accumulatedText += chunk.text();
-      setMessages(prev => {
+      setMessages((prev) => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage.id === newMessage.id) {
@@ -129,7 +156,7 @@ const ChatApp = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (input.trim()) {
         handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
@@ -145,7 +172,9 @@ const ChatApp = () => {
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Chat Assistant</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            AI Chat Assistant
+          </h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -171,7 +200,9 @@ const ChatApp = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
                 className={`py-6 ${
-                  message.isUser ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-900'
+                  message.isUser
+                    ? "bg-white dark:bg-gray-800"
+                    : "bg-gray-50 dark:bg-gray-900"
                 }`}
               >
                 <div className="max-w-3xl mx-auto flex gap-4">
@@ -188,7 +219,7 @@ const ChatApp = () => {
                   </div>
                   <div className="min-w-0 space-y-1 flex-1">
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {message.isUser ? 'You' : 'Assistant'}
+                      {message.isUser ? "You" : "Assistant"}
                     </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       {message.isUser ? (
@@ -229,8 +260,8 @@ const ChatApp = () => {
                 rows={1}
                 className="w-full resize-none rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 pr-12 text-sm focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:border-blue-500 dark:text-gray-100 dark:focus:ring-blue-500"
                 style={{
-                  maxHeight: '200px',
-                  minHeight: '44px'
+                  maxHeight: "200px",
+                  minHeight: "44px",
                 }}
               />
               <Button

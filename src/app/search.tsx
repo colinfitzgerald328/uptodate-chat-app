@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Input } from "@/components/ui/input"
-import { fetchLinksFromGoogle } from './api';
+import React, { useState, useEffect, useCallback } from "react";
+import { Input } from "@/components/ui/input";
+import { fetchLinksFromGoogle } from "./api";
 
 // Define the structure of a search result item
 interface SearchItem {
@@ -17,9 +17,8 @@ interface GoogleSearchProps {
   cx: string;
 }
 
-
 export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,23 +33,23 @@ export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
   };
 
   // Search function
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      return;
-    }
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) {
+        setResults([]);
+        return;
+      }
 
-    setIsLoading(true);
-    setError(null);
-
-
-    
-
-
-  }, [apiKey, cx]);    
+      setIsLoading(true);
+      setError(null);
+    },
+    [apiKey, cx],
+  );
 
   // Debounced search function
-  const debouncedSearch = useCallback(debounce(performSearch, 300), [performSearch]);
+  const debouncedSearch = useCallback(debounce(performSearch, 300), [
+    performSearch,
+  ]);
 
   // Effect to trigger search when query changes
   useEffect(() => {
@@ -69,17 +68,22 @@ export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
           className="w-full p-2 border rounded"
         />
       </div>
-      
+
       {isLoading && <p className="text-center">Loading...</p>}
-      
+
       {error && <p className="text-red-500 text-center">{error}</p>}
-      
+
       {results.length > 0 && (
         <div className="space-y-4">
           {results.map((item, index) => (
             <div key={index} className="border-b pb-2">
               <h3 className="text-xl font-semibold">
-                <a href={item.link} className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                <a
+                  href={item.link}
+                  className="text-blue-600 hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {item.title}
                 </a>
               </h3>
@@ -88,7 +92,7 @@ export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
           ))}
         </div>
       )}
-      
+
       {query && !isLoading && results.length === 0 && (
         <p className="text-center">No results found.</p>
       )}
