@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Input } from "@/components/ui/input"
+import { fetchLinksFromGoogle } from './api';
 
 // Define the structure of a search result item
 interface SearchItem {
@@ -16,62 +17,6 @@ interface GoogleSearchProps {
   cx: string;
 }
 
-interface GoogleSearchResponse {
-    kind: string;
-    url: {
-      type: string;
-      template: string;
-    };
-    queries: {
-      request: SearchRequest[];
-      nextPage: SearchRequest[];
-    };
-    context: {
-      title: string;
-    };
-    searchInformation: {
-      searchTime: number;
-      formattedSearchTime: string;
-      totalResults: string;
-      formattedTotalResults: string;
-    };
-    items: SearchResultItem[];
-  }
-  
-  interface SearchRequest {
-    title: string;
-    totalResults: string;
-    searchTerms: string;
-    count: number;
-    startIndex: number;
-    inputEncoding: string;
-    outputEncoding: string;
-    safe: string;
-    cx: string;
-  }
-  
-  interface SearchResultItem {
-    kind: string;
-    title: string;
-    htmlTitle: string;
-    link: string;
-    displayLink: string;
-    snippet: string;
-    htmlSnippet: string;
-    formattedUrl: string;
-    htmlFormattedUrl: string;
-    pagemap?: {
-      cse_thumbnail?: {
-        src: string;
-        width: string;
-        height: string;
-      }[];
-      metatags?: Record<string, string>[];
-      cse_image?: {
-        src: string;
-      }[];
-    };
-  }
 
 export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
   const [query, setQuery] = useState('');
@@ -98,35 +43,19 @@ export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
     setIsLoading(true);
     setError(null);
 
+    const response = await fetchLinksFromGoogle(searchQuery, apiKey, cx)
+
+    await fetch("https://go-server-production-a4d6.up.railway.app/fetch", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ urls: response.items.map((item) => item.link) }),
+    })
     
 
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(searchQuery)}`
-      );
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch search results');
-      }
-
-      const data: GoogleSearchResponse = await response.json();
-      await Promise.all(data.items.map(async (item) => {
-        await fetch(item.link, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-          },
-        });
-        const html = await response.text();
-        item.snippet = html.match(/<p>(.*?)<\/p>/)?.[1] || '';
-      }))
-      setResults(data.items || []);
-    } catch (err) {
-      setError('An error occurred while fetching search results. Please try again.');
-      console.error('Search error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [apiKey, cx]);
+  }, [apiKey, cx]);    
 
   // Debounced search function
   const debouncedSearch = useCallback(debounce(performSearch, 300), [performSearch]);
