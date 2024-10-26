@@ -9,7 +9,7 @@ import { fetchAIContext } from './api';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
-import GoogleSearch from './search';
+import { fetchLinksFromGoogle, fetchContentFromLinks, getQueriesFromMessages, ModelResponse } from './api';
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -60,6 +60,10 @@ const ChatApp = () => {
     }
   }, [input]);
 
+
+
+
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -75,8 +79,20 @@ const ChatApp = () => {
 
     try {
       const chatHistory = messages.map(message => message.text);
-      const contextData = await fetchAIContext({ current_question: input, chat_history: chatHistory});
-      await streamGenAIResponse(contextData, input);
+      const query = await getQueriesFromMessages(chatHistory);
+      if (!query) {
+        return; 
+      }
+      const responseAsJson = JSON.parse(query) as ModelResponse;
+      const queries = responseAsJson.response;
+      const linkResults = await Promise.all(queries.map((query: string) => fetchLinksFromGoogle(query, "", "")));
+      const topLinksForEachResult = linkResults.map((link) => {
+        return link.items.slice(0, 3).map((item) => {
+          return item.formattedUrl
+        })
+      })
+      const contextResponse = await fetchContentFromLinks(topLinksForEachResult.flat());
+      await streamGenAIResponse(contextResponse.map((item) => item.content).join("\n"), input);
     } catch (error) {
       console.error('Error:', error);
       setMessages(prev => [...prev, { 
@@ -127,10 +143,6 @@ const ChatApp = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      <GoogleSearch
-        apiKey={"AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY"}
-        cx={"e583cdc393c4b469c"}
-      />
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Chat Assistant</h1>

@@ -43,15 +43,7 @@ export default function GoogleSearch({ apiKey, cx }: GoogleSearchProps) {
     setIsLoading(true);
     setError(null);
 
-    const response = await fetchLinksFromGoogle(searchQuery, apiKey, cx)
 
-    await fetch("https://go-server-production-a4d6.up.railway.app/fetch", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ urls: response.items.map((item) => item.link) }),
-    })
     
 
 
