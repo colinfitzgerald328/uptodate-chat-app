@@ -1,5 +1,3 @@
-import axios from "axios";
-
 const API_URL = "https://athletics-hub-engine-production.up.railway.app";
 
 interface GetContextPayload {
