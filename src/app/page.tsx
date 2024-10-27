@@ -1,35 +1,35 @@
-"use client"
+"use client";
 
-import React, { useState, useRef, useEffect } from "react"
-import { Send, Loader2, User, Bot, Trash2, ArrowDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import React, { useState, useRef, useEffect } from "react";
+import { Send, Loader2, User, Bot, Trash2, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { GoogleGenerativeAI } from "@google/generative-ai"
-import ReactMarkdown from "react-markdown"
-import { motion, AnimatePresence } from "framer-motion"
+} from "@/components/ui/tooltip";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  fetchLinksFromGoogle,
+  fetchResults,
   fetchContentFromLink,
   getQueriesFromMessages,
   ModelResponse,
-  LinkScrapeResponse
-} from "./api"
+  LinkScrapeResponse,
+} from "./api";
 
-const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY")
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 function trimToTokenLimit(text: string, maxTokens = 10000) {
   // Approximate 4 characters per token; adjust if the model has a different average.
   const approxTokens = Math.floor(text.length / 4);
 
   if (approxTokens <= maxTokens) {
-      return text; // Already within limit
+    return text; // Already within limit
   }
 
   // Trim the text by character count to approximate token count within limit
@@ -37,126 +37,134 @@ function trimToTokenLimit(text: string, maxTokens = 10000) {
   return text.slice(0, maxChars);
 }
 
-
 interface Message {
-  id: string
-  text: string
-  isUser: boolean
-  timestamp: Date
+  id: string;
+  text: string;
+  isUser: boolean;
+  timestamp: Date;
 }
 
 export default function ChatApp() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [showScrollButton, setShowScrollButton] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     const handleScroll = () => {
       if (scrollAreaRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current
-        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100)
+        const { scrollTop, scrollHeight, clientHeight } = scrollAreaRef.current;
+        setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
       }
-    }
+    };
 
-    scrollAreaRef.current?.addEventListener("scroll", handleScroll)
-    return () => scrollAreaRef.current?.removeEventListener("scroll", handleScroll)
-  }, [])
+    scrollAreaRef.current?.addEventListener("scroll", handleScroll);
+    return () =>
+      scrollAreaRef.current?.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     if (!isLoading) {
-      scrollToBottom()
+      scrollToBottom();
     }
-  }, [messages, isLoading])
+  }, [messages, isLoading]);
 
   useEffect(() => {
-    const textarea = textareaRef.current
+    const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = "inherit"
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+      textarea.style.height = "inherit";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
-  }, [input])
+  }, [input]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     const newMessage: Message = {
       id: Date.now().toString(),
       text: input,
       isUser: true,
       timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, newMessage])
-    setInput("")
+    };
+    setMessages((prev) => [...prev, newMessage]);
+    setInput("");
 
     if (textareaRef.current) {
-      textareaRef.current.style.height = "inherit"
+      textareaRef.current.style.height = "inherit";
     }
     try {
-      const messagesToWorkFrom = [...messages, newMessage]
-      const userMessages = messagesToWorkFrom.filter((message) => message.isUser)
-      const chatHistory = userMessages.map((message) => message.text)
-      const query = await getQueriesFromMessages(chatHistory)
-      console.log("QUERY", query)
+      const messagesToWorkFrom = [...messages, newMessage];
+      const userMessages = messagesToWorkFrom.filter(
+        (message) => message.isUser,
+      );
+      const chatHistory = userMessages.map((message) => message.text);
+      const query = await getQueriesFromMessages(chatHistory);
       if (!query) {
-        return
+        return;
       }
-      const responseAsJson = JSON.parse(query) as ModelResponse
-      const queries = responseAsJson.response
-      const linkResults = await Promise.all(
-        queries.map((query: string) =>
-          fetchLinksFromGoogle(query, "AIzaSyAjL926qdFjw4qBVQUBVvs7mTHz5rY_nIE", "373091929c14f4aca")
-        )
-      )
-      const topLinksForEachResult = linkResults.map((link) => {
-        return link.items
-          .slice(0, 3)
-          .filter((item) => {
-            const formattedUrl = item.link.toLowerCase()
-            return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube") && !formattedUrl.includes("letsrun")
-          })
-          .map((item) => {
-            return item.link
-          })
-      })
-      const flattenedLinks = topLinksForEachResult.flat();
+      const responseAsJson = JSON.parse(query) as ModelResponse;
+      const queries = responseAsJson.response.slice(0, 3);
+      const linkResults = await Promise.allSettled(
+        queries.slice(0, 2).map((query: string) => fetchResults(query)),
+      );
+      const fulfilledResults = linkResults.filter(
+        (result) => result.status === "fulfilled",
+      );
+      const linksToSearch = fulfilledResults
+        .map((result) => result.value.results.map((item) => item.url))
+        .flat();
+      const fillteredLinks = linksToSearch
+        .filter((link) => {
+          const formattedUrl = link.toLowerCase();
+          return (
+            !formattedUrl.includes("instagram") &&
+            !formattedUrl.includes("twitter") &&
+            !formattedUrl.includes("youtube") &&
+            !formattedUrl.includes("letsrun")
+          );
+        })
+        .map((item) => {
+          return item;
+        });
       const fetchWithTimeout = async (link: string, timeout = 750) => {
         return Promise.race([
           fetchContentFromLink(link),
-          new Promise<LinkScrapeResponse>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
+          new Promise<LinkScrapeResponse>((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout")), timeout),
+          ),
         ]);
       };
-      
+
       const linkPromises = await Promise.all(
-        flattenedLinks.map(async (link) => {
+        fillteredLinks.map(async (link) => {
           try {
             return await fetchWithTimeout(link);
           } catch (error: unknown) {
-            console.warn(`Skipped link due to timeout or error: ${link} due to ${error}`);
+            console.warn(
+              `Skipped link due to timeout or error: ${link} due to ${error}`,
+            );
             return null; // Skip this link
           }
-        })
+        }),
       );
       // Filter out null values (the skipped links)
-      const resolvedLinks = linkPromises.filter(link => link !== null)
+      const resolvedLinks = linkPromises.filter((link) => link !== null);
       const context = resolvedLinks
-      .map((link) => trimToTokenLimit(link.content))
-      .join("\n");
-      await streamGenAIResponse(
-        context, 
-        input
-      )
+        .map((link) => trimToTokenLimit(link.content))
+        .join("\n");
+      console.log("CONTEXT", context);
+      await streamGenAIResponse(context, input);
     } catch (error) {
-      console.error("Error:", error)
+      console.error("Error:", error);
       setMessages((prev) => [
         ...prev,
         {
@@ -165,60 +173,59 @@ export default function ChatApp() {
           isUser: false,
           timestamp: new Date(),
         },
-      ])
+      ]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const streamGenAIResponse = async (context: string, question: string) => {
-    const prompt = `The following is context intended to help you answer the user's question. Here is the context: <context>${context}</context>. The user's question is: <user_question>${question}</user_question>. Please answer the question using the context provided. Do NOT mention the context but rather answer the question naturally.`
+    const prompt = `The following is context intended to help you answer the user's question. Here is the context: <context>${context}</context>. The user's question is: <user_question>${question}</user_question>. Please answer the question using the context provided. Do NOT mention the context but rather answer the question naturally.`;
 
-    const result = await model.generateContentStream(prompt)
-    let accumulatedText = ""
+    const result = await model.generateContentStream(prompt);
+    let accumulatedText = "";
 
     const newMessage: Message = {
       id: Date.now().toString(),
       text: "",
       isUser: false,
       timestamp: new Date(),
-    }
-    setMessages((prev) => [...prev, newMessage])
+    };
+    setMessages((prev) => [...prev, newMessage]);
 
     for await (const chunk of result.stream) {
-      accumulatedText += chunk.text()
+      accumulatedText += chunk.text();
       setMessages((prev) => {
-        const newMessages = [...prev]
-        const lastMessage = newMessages[newMessages.length - 1]
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
         if (lastMessage.id === newMessage.id) {
-          lastMessage.text = accumulatedText
+          lastMessage.text = accumulatedText;
         }
-        return newMessages
-      })
+        return newMessages;
+      });
     }
-  }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
+      e.preventDefault();
       if (input.trim()) {
-        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
+        handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
       }
     }
-  }
+  };
 
   const clearChat = () => {
-    setMessages([])
-  }
-
-
-  
+    setMessages([]);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-4 sm:px-6 lg:px-8 shadow-sm">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Chat Assistant</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            AI Chat Assistant
+          </h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -287,7 +294,9 @@ export default function ChatApp() {
             >
               <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-full shadow-sm">
                 <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-300">AI is thinking...</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">
+                  AI is thinking...
+                </span>
               </div>
             </motion.div>
           )}
@@ -343,5 +352,5 @@ export default function ChatApp() {
         </div>
       </div>
     </div>
-  )
+  );
 }

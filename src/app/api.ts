@@ -1,12 +1,11 @@
+"use server";
 const API_URL = "https://athletics-hub-engine-production.up.railway.app";
 const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
-
+import * as DDG from "duck-duck-scrape";
 interface GetContextPayload {
   current_question: string;
   chat_history: string[];
 }
-
-
 
 export interface GoogleSearchResponse {
   kind: string;
@@ -81,22 +80,11 @@ export const fetchAIContext = async (payload: GetContextPayload) => {
   return await response.json();
 };
 
-export const fetchLinksFromGoogle = async (
-  searchQuery: string,
-  apiKey: string,
-  cx: string,
-) => {
-  const response = await fetch(
-    `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(searchQuery)}`,
-  );
-
-  // Check if the response is OK (status code 200)
-  if (!response.ok) {
-    throw new Error(`Error fetching search results: ${response.statusText}`);
-  }
-
-  // Parse and return the JSON response, typed as GoogleSearchResponse
-  return (await response.json()) as GoogleSearchResponse;
+export const fetchResults = async (searchQuery: string) => {
+  const searchResults = await DDG.search(searchQuery, {
+    safeSearch: DDG.SafeSearchType.STRICT,
+  });
+  return searchResults;
 };
 
 export const fetchContentFromLink = async (link: string) => {
@@ -158,9 +146,9 @@ export const getQueriesFromMessages = async (messages: string[]) => {
   <current_question>
     ${messages[messages.length - 1]}
   </current_question>
-  `
+  `;
 
-  console.log("PROMPT", prompt)
+  console.log("PROMPT", prompt);
 
   const result = await chatSession.sendMessage(prompt);
   if (!result?.response?.candidates) {
