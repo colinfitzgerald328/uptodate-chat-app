@@ -141,12 +141,25 @@ export interface ModelResponse {
 }
 
 export const getQueriesFromMessages = async (messages: string[]) => {
-  console.log("messages", messages)
   const chatSession = model.startChat({
     generationConfig,
   });
 
-  const prompt = `please generate a list of queries to search google based on the user's chat messages. this context will be used for your next question to help give you the answer so please make sure the queries are as good as you can make them.  for general context, the current year is 2024 and the user's geolocation is the United States of America ${messages}`
+  const prompt = `please generate a list of queries to search google based on the user's chat messages.
+  this context will be used for your next question to help give you the answer so please make sure the queries
+  are as good as you can make them.
+  for general context, the current year is 2024 and the user's geolocation is the United States of America
+
+  <chat_history>
+    ${messages}
+  </chat_history>
+
+  <current_question>
+    ${messages[messages.length - 1]}
+  </current_question>
+  `
+
+  console.log("PROMPT", prompt)
 
   const result = await chatSession.sendMessage(prompt);
   if (!result?.response?.candidates) {

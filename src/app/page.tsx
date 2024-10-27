@@ -102,19 +102,27 @@ export default function ChatApp() {
       const queries = responseAsJson.response
       const linkResults = await Promise.all(
         queries.map((query: string) =>
-          fetchLinksFromGoogle(query, "AIzaSyBAq3y0935pTyc1I7QfsKVGocv3BGoraYQ", "373091929c14f4aca")
+          fetchLinksFromGoogle(query, "AIzaSyAqhQLP0xOjtcxNzGh_Lx-inHz5Ze-n9iU", "373091929c14f4aca")
         )
       )
       const topLinksForEachResult = linkResults.map((link) => {
-        return link.items.slice(0, 3).map((item) => {
-          return item.formattedUrl
-        })
+        return link.items
+          .slice(0, 5)
+          .filter((item) => {
+            const formattedUrl = item.formattedUrl.toLowerCase()
+            return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube")
+          })
+          .map((item) => {
+            return item.formattedUrl
+          })
       })
+      const flattenedLinks = topLinksForEachResult.flat();
+      const random5 = flattenedLinks.sort(() => Math.random() - 0.5).slice(0, 5)
       const linkContents = await Promise.all(
-        topLinksForEachResult.map((link) => fetchContentFromLinks([...link]))
+        random5.map((link) => fetchContentFromLinks([link]))
       )
       await streamGenAIResponse(
-        linkContents.map((content) => content.map((item) => item.content)).join("\n"),
+        linkContents.map((item) => item.map((content) => content.content).join("\n")).join("\n"),
         input
       )
     } catch (error) {
