@@ -1,5 +1,5 @@
 const API_URL = "https://athletics-hub-engine-production.up.railway.app";
-const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
+// const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
 
 interface GetContextPayload {
   current_question: string;
