@@ -18,7 +18,6 @@ import {
   fetchContentFromLink,
   getQueriesFromMessages,
   ModelResponse,
-  fetchResponse
 } from "./api"
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY")
@@ -132,7 +131,7 @@ export default function ChatApp() {
       const fetchWithTimeout = async (link: string, timeout = 750) => {
         return Promise.race([
           fetchContentFromLink(link),
-          new Promise<fetchResponse>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
+          new Promise<string>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
         ]);
       };
       
@@ -149,7 +148,7 @@ export default function ChatApp() {
       // Filter out null values (the skipped links)
       const resolvedLinks = linkPromises.filter(link => link !== null)
       const context = resolvedLinks
-      .map((link) => trimToTokenLimit(link.content))
+      .map((link) => trimToTokenLimit(link))
       .join("\n");
       await streamGenAIResponse(
         context, 

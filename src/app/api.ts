@@ -6,11 +6,7 @@ interface GetContextPayload {
   chat_history: string[];
 }
 
-export interface fetchResponse {
-  url: string;
-  content: string;
-  error: string;
-}
+
 
 export interface GoogleSearchResponse {
   kind: string;
@@ -99,14 +95,14 @@ export const fetchLinksFromGoogle = async (
 };
 
 export const fetchContentFromLink = async (link: string) => {
-  const response = await fetch(GO_SERVER_URL + "/fetch", {
+  const response = await fetch(API_URL + "/link/scrape", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ url: link }),
   });
-  return (await response.json()) as fetchResponse;
+  return (await response.json()) as string;
 };
 
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
