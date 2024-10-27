@@ -121,11 +121,11 @@ export default function ChatApp() {
         return link.items
           .slice(0, 3)
           .filter((item) => {
-            const formattedUrl = item.formattedUrl.toLowerCase()
+            const formattedUrl = item.link.toLowerCase()
             return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube") && !formattedUrl.includes("letsrun")
           })
           .map((item) => {
-            return item.formattedUrl
+            return item.link
           })
       })
       const flattenedLinks = topLinksForEachResult.flat();
@@ -146,7 +146,6 @@ export default function ChatApp() {
           }
         })
       );
-      
       // Filter out null values (the skipped links)
       const resolvedLinks = linkPromises.filter(link => link !== null)
       const context = resolvedLinks
