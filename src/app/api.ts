@@ -1,5 +1,5 @@
 const API_URL = "https://athletics-hub-engine-production.up.railway.app";
-// const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
+const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
 
 interface GetContextPayload {
   current_question: string;
@@ -65,6 +65,11 @@ export interface SearchResultItem {
   };
 }
 
+export interface LinkScrapeResponse {
+  url: string;
+  content: string;
+}
+
 export const fetchAIContext = async (payload: GetContextPayload) => {
   const response = await fetch(API_URL + "/context", {
     method: "POST",
@@ -95,14 +100,14 @@ export const fetchLinksFromGoogle = async (
 };
 
 export const fetchContentFromLink = async (link: string) => {
-  const response = await fetch(API_URL + "/link/scrape", {
+  const response = await fetch(GO_SERVER_URL + "/fetch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ url: link }),
   });
-  return (await response.json()) as string;
+  return (await response.json()) as LinkScrapeResponse;
 };
 
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
