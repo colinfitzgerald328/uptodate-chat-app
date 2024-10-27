@@ -24,7 +24,7 @@ import {
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY")
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
-function trimToTokenLimit(text: string, maxTokens = 5000) {
+function trimToTokenLimit(text: string, maxTokens = 10000) {
   // Approximate 4 characters per token; adjust if the model has a different average.
   const approxTokens = Math.floor(text.length / 4);
 
