@@ -15,13 +15,28 @@ import ReactMarkdown from "react-markdown"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   fetchLinksFromGoogle,
-  fetchContentFromLinks,
+  fetchContentFromLink,
   getQueriesFromMessages,
   ModelResponse,
+  fetchResponse
 } from "./api"
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY")
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+function trimToTokenLimit(text: string, maxTokens = 5000) {
+  // Approximate 4 characters per token; adjust if the model has a different average.
+  const approxTokens = Math.floor(text.length / 4);
+
+  if (approxTokens <= maxTokens) {
+      return text; // Already within limit
+  }
+
+  // Trim the text by character count to approximate token count within limit
+  const maxChars = maxTokens * 4;
+  return text.slice(0, maxChars);
+}
+
 
 interface Message {
   id: string
@@ -86,9 +101,6 @@ export default function ChatApp() {
     if (textareaRef.current) {
       textareaRef.current.style.height = "inherit"
     }
-
-
-
     try {
       const messagesToWorkFrom = [...messages, newMessage]
       const userMessages = messagesToWorkFrom.filter((message) => message.isUser)
@@ -102,7 +114,7 @@ export default function ChatApp() {
       const queries = responseAsJson.response
       const linkResults = await Promise.all(
         queries.map((query: string) =>
-          fetchLinksFromGoogle(query, "AIzaSyAqhQLP0xOjtcxNzGh_Lx-inHz5Ze-n9iU", "373091929c14f4aca")
+          fetchLinksFromGoogle(query, "AIzaSyCT3Lw7M4yk3PgkDp7OryLoaMfg6K5Ryt0", "373091929c14f4aca")
         )
       )
       const topLinksForEachResult = linkResults.map((link) => {
@@ -110,19 +122,38 @@ export default function ChatApp() {
           .slice(0, 5)
           .filter((item) => {
             const formattedUrl = item.formattedUrl.toLowerCase()
-            return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube")
+            return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube") && !formattedUrl.includes("letsrun")
           })
           .map((item) => {
             return item.formattedUrl
           })
       })
       const flattenedLinks = topLinksForEachResult.flat();
-      const random5 = flattenedLinks.sort(() => Math.random() - 0.5).slice(0, 5)
-      const linkContents = await Promise.all(
-        random5.map((link) => fetchContentFromLinks([link]))
-      )
+      const fetchWithTimeout = async (link: string, timeout = 750) => {
+        return Promise.race([
+          fetchContentFromLink(link),
+          new Promise<fetchResponse>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
+        ]);
+      };
+      
+      const linkPromises = await Promise.all(
+        flattenedLinks.map(async (link) => {
+          try {
+            return await fetchWithTimeout(link);
+          } catch (error: unknown) {
+            console.warn(`Skipped link due to timeout or error: ${link} due to ${error}`);
+            return null; // Skip this link
+          }
+        })
+      );
+      
+      // Filter out null values (the skipped links)
+      const resolvedLinks = linkPromises.filter(link => link !== null)
+      const context = resolvedLinks
+      .map((link) => trimToTokenLimit(link.content))
+      .join("\n");
       await streamGenAIResponse(
-        linkContents.map((item) => item.map((content) => content.content).join("\n")).join("\n"),
+        context, 
         input
       )
     } catch (error) {
@@ -180,6 +211,9 @@ export default function ChatApp() {
   const clearChat = () => {
     setMessages([])
   }
+
+
+  
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
