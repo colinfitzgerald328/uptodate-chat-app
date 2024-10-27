@@ -114,12 +114,12 @@ export default function ChatApp() {
       const queries = responseAsJson.response
       const linkResults = await Promise.all(
         queries.map((query: string) =>
-          fetchLinksFromGoogle(query, "AIzaSyCT3Lw7M4yk3PgkDp7OryLoaMfg6K5Ryt0", "373091929c14f4aca")
+          fetchLinksFromGoogle(query, "AIzaSyAjL926qdFjw4qBVQUBVvs7mTHz5rY_nIE", "373091929c14f4aca")
         )
       )
       const topLinksForEachResult = linkResults.map((link) => {
         return link.items
-          .slice(0, 5)
+          .slice(0, 3)
           .filter((item) => {
             const formattedUrl = item.formattedUrl.toLowerCase()
             return !formattedUrl.includes("instagram") && !formattedUrl.includes("twitter") && !formattedUrl.includes("youtube") && !formattedUrl.includes("letsrun")
