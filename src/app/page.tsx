@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   fetchAIContext,
+  GetContextPayload
 } from "./api";
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
@@ -87,7 +88,11 @@ export default function ChatApp() {
       textareaRef.current.style.height = "inherit";
     }
     try {
-      const contextResponse = await fetchAIContext(newMessage.text);
+      const payload: GetContextPayload = {
+        current_question: newMessage.text,
+        chat_history: messages.map((message) => message.text),
+      }
+      const contextResponse = await fetchAIContext(payload);
       await streamGenAIResponse(contextResponse.context, input);
     } catch (error) {
       console.error("Error:", error);
