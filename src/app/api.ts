@@ -1,8 +1,9 @@
 "use server";
-const API_URL = "https://athletics-hub-engine-production.up.railway.app";
+// const API_URL = "https://athletics-hub-engine-production.up.railway.app";
 const GO_SERVER_URL = "https://go-server-production-a4d6.up.railway.app";
 import * as DDG from "duck-duck-scrape";
-interface GetContextPayload {
+
+export interface GetContextPayload {
   current_question: string;
   chat_history: string[];
 }
@@ -69,15 +70,21 @@ export interface LinkScrapeResponse {
   content: string;
 }
 
-export const fetchAIContext = async (payload: GetContextPayload) => {
-  const response = await fetch(API_URL + "/context", {
+export interface ContextResponse {
+  context: string;
+  processing_time: number;
+}
+
+export const fetchAIContext = async (question: string) => {
+  const response = await fetch(GO_SERVER_URL + "/context", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      question,}),
   });
-  return await response.json();
+  return await response.json() as ContextResponse;
 };
 
 export const fetchResults = async (searchQuery: string) => {
@@ -156,3 +163,5 @@ export const getQueriesFromMessages = async (messages: string[]) => {
   }
   return result.response.candidates[0].content.parts[0].text;
 };
+
+

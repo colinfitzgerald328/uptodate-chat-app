@@ -14,28 +14,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  fetchResults,
-  fetchContentFromLink,
-  getQueriesFromMessages,
-  ModelResponse,
-  LinkScrapeResponse,
+  fetchAIContext,
 } from "./api";
 
 const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-function trimToTokenLimit(text: string, maxTokens = 30000) {
-  // Approximate 4 characters per token; adjust if the model has a different average.
-  const approxTokens = Math.floor(text.length / 4);
 
-  if (approxTokens <= maxTokens) {
-    return text; // Already within limit
-  }
-
-  // Trim the text by character count to approximate token count within limit
-  const maxChars = maxTokens * 4;
-  return text.slice(0, maxChars);
-}
 
 interface Message {
   id: string;
@@ -102,67 +87,8 @@ export default function ChatApp() {
       textareaRef.current.style.height = "inherit";
     }
     try {
-      const messagesToWorkFrom = [...messages, newMessage];
-      const userMessages = messagesToWorkFrom.filter(
-        (message) => message.isUser,
-      );
-      const chatHistory = userMessages.map((message) => message.text);
-      const query = await getQueriesFromMessages(chatHistory);
-      if (!query) {
-        return;
-      }
-      const responseAsJson = JSON.parse(query) as ModelResponse;
-      const queries = responseAsJson.response.slice(0, 3);
-      const linkResults = await Promise.allSettled(
-        queries.slice(0, 2).map((query: string) => fetchResults(query)),
-      );
-      const fulfilledResults = linkResults.filter(
-        (result) => result.status === "fulfilled",
-      );
-      const linksToSearch = fulfilledResults
-        .map((result) => result.value.results.map((item) => item.url))
-        .flat();
-      const fillteredLinks = linksToSearch
-        .filter((link) => {
-          const formattedUrl = link.toLowerCase();
-          return (
-            !formattedUrl.includes("instagram") &&
-            !formattedUrl.includes("twitter") &&
-            !formattedUrl.includes("youtube") &&
-            !formattedUrl.includes("letsrun")
-          );
-        })
-        .map((item) => {
-          return item;
-        });
-      const fetchWithTimeout = async (link: string, timeout = 1000) => {
-        return Promise.race([
-          fetchContentFromLink(link),
-          new Promise<LinkScrapeResponse>((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout")), timeout),
-          ),
-        ]);
-      };
-
-      const linkPromises = await Promise.all(
-        fillteredLinks.map(async (link) => {
-          try {
-            return await fetchWithTimeout(link);
-          } catch (error: unknown) {
-            console.warn(
-              `Skipped link due to timeout or error: ${link} due to ${error}`,
-            );
-            return null; // Skip this link
-          }
-        }),
-      );
-      // Filter out null values (the skipped links)
-      const resolvedLinks = linkPromises.filter((link) => link !== null);
-      const context = resolvedLinks
-        .map((link) => trimToTokenLimit(link.content))
-        .join("\n");
-      console.log("CONTEXT", context);
-      await streamGenAIResponse(context, input);
+      const contextResponse = await fetchAIContext(newMessage.text);
+      await streamGenAIResponse(contextResponse.context, input);
     } catch (error) {
       console.error("Error:", error);
       setMessages((prev) => [

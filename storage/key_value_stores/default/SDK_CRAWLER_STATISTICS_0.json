@@ -1,0 +1,50 @@
+{
+  "requestsFinished": 0,
+  "requestsFailed": 1,
+  "requestsRetries": 1,
+  "requestsFailedPerMinute": 983,
+  "requestsFinishedPerMinute": 0,
+  "requestMinDurationMillis": null,
+  "requestMaxDurationMillis": 0,
+  "requestTotalFailedDurationMillis": 1,
+  "requestTotalFinishedDurationMillis": 0,
+  "crawlerStartedAt": "2024-10-30T05:42:11.673Z",
+  "crawlerFinishedAt": "2024-10-30T05:42:11.731Z",
+  "statsPersistedAt": "2024-10-30T05:42:11.731Z",
+  "crawlerRuntimeMillis": 61,
+  "crawlerLastStartTimestamp": 1730266931670,
+  "requestRetryHistogram": [
+    null,
+    null,
+    null,
+    1
+  ],
+  "statsId": 0,
+  "requestAvgFailedDurationMillis": 1,
+  "requestAvgFinishedDurationMillis": null,
+  "requestTotalDurationMillis": 1,
+  "requestsTotal": 1,
+  "requestsWithStatusCode": {},
+  "errors": {
+    "action-browser": {
+      "ENOENT": {
+        "Error": {
+          "ENOENT: no such file or directory, open '/Users/colinfitzgerald/uptodate-chat-app/.next/server/vendor-chunks/data_files/headers-order.json'": {
+            "count": 1
+          }
+        }
+      }
+    }
+  },
+  "retryErrors": {
+    "action-browser": {
+      "ENOENT": {
+        "Error": {
+          "ENOENT: no such file or directory, open '/Users/colinfitzgerald/uptodate-chat-app/.next/server/vendor-chunks/data_files/headers-order.json'": {
+            "count": 3
+          }
+        }
+      }
+    }
+  }
+}
