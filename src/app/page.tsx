@@ -18,7 +18,7 @@ import {
   GetContextPayload
 } from "./api";
 
-const genAI = new GoogleGenerativeAI("AIzaSyA5tfuXTZusFLpo-G5Xp1casq_aypzUdoY");
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY as string);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 
